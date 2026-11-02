@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+		<title>Mein Sudoku</title>
+
+		<style>
+
+
+
+			body {
+
+			  font-family: Arial, sans-serif;
+
+			  text-align: center;
+
+			  background: #f0eaff;
+
+			  color: #35264d;
+
+			  padding: 16px;
+
+			  margin: 0;
+
+			}
+
+			.card {
+
+			  max-width: 500px;
+
+			  margin: 20px auto;
+
+			  padding: 20px 12px;
+
+			  background: #ffffff;
+
+			  border-radius: 18px;
+
+			  box-shadow: 0 4px 16px #7546b820;
+
+			}
+
+			h1 {
+
+			  color: #7546b8;
+
+			  margin-bottom: 10px;
+
+			}
+
+			p {
+
+			  line-height: 1.5;
+
+			}
+
+			.brett {
+
+			  display: grid;
+
+			  grid-template-columns: repeat(9, minmax(0, 1fr));
+
+			  width: 100%;
+
+			  max-width: 450px;
+
+			  margin: 22px auto;
+
+			  border: 3px solid #7546b8;
+
+			  box-sizing: border-box;
+
+			}
+
+			.feld {
+
+			  aspect-ratio: 1;
+
+			  min-width: 0;
+
+			  padding: 0;
+
+			  margin: 0;
+
+			  border: 1px solid #cbbce5;
+
+			  border-radius: 0;
+
+			  background: #ffffff;
+
+			  color: #49336c;
+
+			  font-size: clamp(13px, 4vw, 21px);
+
+			  font-weight: 500;
+
+			  display: flex;
+
+			  align-items: center;
+
+			  justify-content: center;
+
+			  box-sizing: border-box;
+
+			}
+.feld.ausgewaehlt {
+  outline: 3px solid #7546b8;
+  outline-offset: -3px;
+}
+			.feld:nth-child(9n + 3),
+
+			.feld:nth-child(9n + 6) {
+
+			  border-right: 3px solid #7546b8;
+
+			}
+
+			.feld:nth-child(n + 19):nth-child(-n + 27),
+
+			.feld:nth-child(n + 46):nth-child(-n + 54) {
+
+			  border-bottom: 3px solid #7546b8;
+
+			}
+
+			#cta {
+
+			  background: #7546b8;
+
+			  color: white;
+
+			  border: none;
+
+			  border-radius: 10px;
+
+			  padding: 12px 22px;
+
+			  font-size: 16px;
+
+			}
+		</style>
+	</head>
+
+	<body>
+		<main class="card">
+			<h1>Mein Sudoku</h1>
+
+			<p>Willkommen bei meinem eigenen Sudoku-Spiel!</p>
+
+			<div id="brett" class="brett"></div>
+			
+<div id="tastatur">
+
+  <button type="button" data-zahl="1">1</button>
+
+  <button type="button" data-zahl="2">2</button>
+
+  <button type="button" data-zahl="3">3</button>
+
+  <button type="button" data-zahl="4">4</button>
+
+  <button type="button" data-zahl="5">5</button>
+
+  <button type="button" data-zahl="6">6</button>
+
+  <button type="button" data-zahl="7">7</button>
+
+  <button type="button" data-zahl="8">8</button>
+
+  <button type="button" data-zahl="9">9</button>
+
+  <button type="button" data-zahl="0">⌫</button>
+
+</div>
+			<p id="meldung">Wähle ein Feld aus.</p>
+
+			<button id="cta" type="button">Neues Spiel</button>
+		</main>
+
+		<script>
+
+			const brett = document.getElementById("brett");
+let ausgewaehltesFeld = null;
+			const raetsel = [
+
+			  5,3,0, 0,7,0, 0,0,0,
+
+			  6,0,0, 1,9,5, 0,0,0,
+
+			  0,9,8, 0,0,0, 0,6,0,
+
+			  8,0,0, 0,6,0, 0,0,3,
+
+			  4,0,0, 8,0,3, 0,0,1,
+
+			  7,0,0, 0,2,0, 0,0,6,
+
+			  0,6,0, 0,0,0, 2,8,0,
+
+			  0,0,0, 4,1,9, 0,0,5,
+
+			  0,0,0, 0,8,0, 0,7,9
+
+			];
+
+			const startZahlen = [...raetsel];
+			const loesung = [
+
+			  5,3,4, 6,7,8, 9,1,2,
+
+			  6,7,2, 1,9,5, 3,4,8,
+
+			  1,9,8, 3,4,2, 5,6,7,
+
+			  8,5,9, 7,6,1, 4,2,3,
+
+			  4,2,6, 8,5,3, 7,9,1,
+
+			  7,1,3, 9,2,4, 8,5,6,
+
+			  9,6,1, 5,3,7, 2,8,4,
+
+			  2,8,7, 4,1,9, 6,3,5,
+
+			  3,4,5, 2,8,6, 1,7,9
+
+			];
+			function regelVerletzt(index, zahl) {
+
+			  const zeile = Math.floor(index / 9);
+
+			  const spalte = index % 9;
+
+			  for (let i = 0; i < 81; i++) {
+
+			    if (i === index) continue;
+
+			    const andereZahl = Number(
+
+			      document.querySelectorAll(".feld")[i].textContent
+
+			    );
+
+			    if (andereZahl !== zahl) continue;
+
+			    const andereZeile = Math.floor(i / 9);
+
+			    const andereSpalte = i % 9;
+
+			    // Gleiche Zeile oder Spalte?
+
+			    if (andereZeile === zeile ||
+
+			        andereSpalte === spalte) {
+
+			      return true;
+
+			    }
+
+			    // Gleicher 3x3-Block?
+
+			    if (
+
+			      Math.floor(andereZeile / 3) === Math.floor(zeile / 3) &&
+
+			      Math.floor(andereSpalte / 3) === Math.floor(spalte / 3)
+
+			    ) {
+
+			      return true;
+
+			    }
+
+			  }
+
+			  return false;
+
+			}
+			function pruefeGewinn() {
+  const felder = document.querySelectorAll(".feld");
+
+  const allesRichtig = Array.from(felder).every(function(feld, index) {
+    return Number(feld.textContent) === loesung[index];
+  });
+
+  if (allesRichtig) {
+    document.getElementById("meldung").textContent =
+      "🎉 Herzlichen Glückwunsch! Du hast das Sudoku gelöst! 🎉";
+  }
+}
+function zeichneBrett() {
+
+  brett.innerHTML = "";
+
+  for (let i = 0; i < 81; i++) {
+
+    const feld = document.createElement("button");
+
+    feld.className = "feld";
+
+    feld.type = "button";
+
+    const zahl = startZahlen[i];
+
+    if (zahl !== 0) {
+
+      feld.textContent = zahl;
+
+      feld.disabled = true;
+
+      feld.style.background = "#eee5ff";
+
+      feld.style.fontWeight = "bold";
+
+    } else {
+
+      feld.textContent = "";
+
+    feld.onclick = function() {
+
+  document.querySelectorAll(".feld").forEach(function(f) {
+    f.classList.remove("ausgewaehlt");
+  });
+
+  ausgewaehltesFeld = feld;
+  feld.classList.add("ausgewaehlt");
+
+  document.getElementById("meldung").textContent =
+    "Feld ausgewählt. Wähle eine Zahl!";
+
+};
+
+    }
+
+    brett.appendChild(feld);
+
+  }
+
+}
+
+			zeichneBrett();
+
+document.getElementById("cta").onclick = function() {
+
+  ausgewaehltesFeld = null;
+
+  zeichneBrett();
+
+  document.getElementById("meldung").textContent =
+
+    "Das Sudoku wurde zurückgesetzt!";
+
+};
+
+document.querySelectorAll("#tastatur button").forEach(function(taste) {
+
+  taste.onclick = function() {
+
+    if (ausgewaehltesFeld === null) {
+
+      document.getElementById("meldung").textContent =
+
+        "Wähle zuerst ein leeres Feld aus!";
+
+      return;
+
+    }
+
+    const zahl = taste.dataset.zahl;
+
+    const index = Array.from(document.querySelectorAll(".feld"))
+
+      .indexOf(ausgewaehltesFeld);
+
+    if (zahl === "0") {
+
+      ausgewaehltesFeld.textContent = "";
+
+      ausgewaehltesFeld.style.background = "#ffffff";
+
+      ausgewaehltesFeld.style.color = "#49336c";
+
+      document.getElementById("meldung").textContent = "Zahl gelöscht.";
+
+    } else {
+
+      ausgewaehltesFeld.textContent = zahl;
+
+      if (regelVerletzt(index, Number(zahl))) {
+
+        ausgewaehltesFeld.style.background = "#ffdede";
+
+        document.getElementById("meldung").textContent =
+
+          "Achtung: Sudoku-Regel verletzt!";
+
+      } else if (Number(zahl) === loesung[index]) {
+
+        ausgewaehltesFeld.style.background = "#d9f7d9";
+
+        document.getElementById("meldung").textContent = "Richtig!";
+
+      } else {
+
+        ausgewaehltesFeld.style.background = "#fff0c2";
+
+        document.getElementById("meldung").textContent =
+
+          "Die Zahl ist nicht die Lösung.";
+
+      }
+
+    }
+pruefeGewinn(); 
+  };
+
+});
+		</script>
+		
+	</body>
+</html>
